@@ -1,0 +1,19 @@
+{
+  "name": "webllm",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^8.0.12"
+  },
+  "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.84",
+    "highlight.js": "^11.11.1",
+    "marked": "^18.0.4"
+  }
+}
