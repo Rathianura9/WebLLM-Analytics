@@ -61,13 +61,13 @@ The chatbot tracks and displays:
 Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/webllm-ai-chatbot.git
+git clone (https://github.com/Rathianura9/WebLLM-Analytics)
 ```
 
 Move into the project directory:
 
 ```bash
-cd webllm-ai-chatbot
+cd WebLLM-Analytics
 ```
 
 Install dependencies:
