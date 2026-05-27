@@ -13,7 +13,7 @@ document.querySelector("#app").innerHTML = `
 <div class="app">
 
   <aside class="sidebar">
-    <h2>Testing WebLLM</h2>
+    <h2>WebLLM Analytics</h2>
 
     <div class="sidebar-card">
       <p>Local AI Running</p>
@@ -87,6 +87,63 @@ function updateMetadata(html) {
 
 let engine;
 
+async function getSystemInfo() {
+  let gpuName = "Unavailable";
+  let webgpuSupport = "Unsupported";
+
+  if (navigator.gpu) {
+    webgpuSupport = "Supported";
+
+    try {
+      const adapter = await navigator.gpu.requestAdapter();
+
+      gpuName = adapter?.info?.description || "WebGPU Adapter Detected";
+    } catch (err) {
+      gpuName = "Could not detect GPU";
+    }
+  }
+
+  const browserInfo = `
+    <div class="meta-item">
+      <strong>Browser:</strong>
+      ${
+        navigator.userAgent.includes("Chrome")
+          ? "Google Chrome"
+          : navigator.userAgent.includes("Firefox")
+            ? "Firefox"
+            : "Unknown Browser"
+      }
+    </div>
+
+    <div class="meta-item">
+      <strong>Platform:</strong>
+      ${navigator.platform}
+    </div>
+
+    <div class="meta-item">
+      <strong>CPU Cores:</strong>
+      ${navigator.hardwareConcurrency || "N/A"}
+    </div>
+
+    <div class="meta-item">
+      <strong>Device RAM:</strong>
+      ${navigator.deviceMemory || "N/A"} GB
+    </div>
+
+    <div class="meta-item">
+      <strong>WebGPU:</strong>
+      ${webgpuSupport}
+    </div>
+
+    <div class="meta-item">
+      <strong>GPU:</strong>
+      ${gpuName}
+    </div>
+  `;
+
+  metadata.innerHTML += browserInfo;
+}
+
 async function loadModel() {
   const startTime = performance.now();
 
@@ -128,6 +185,7 @@ async function loadModel() {
   `);
 
   addMessage("assistant", "Model loaded successfully.");
+  await getSystemInfo();
 }
 
 loadModel();
@@ -147,19 +205,15 @@ sendBtn.onclick = async () => {
       <div class="typing">
         Initializing generation...
       </div>
-    `
+    `,
   );
 
-  const contentDiv =
-    assistantWrapper.querySelector(
-      ".message-content"
-    );
+  const contentDiv = assistantWrapper.querySelector(".message-content");
 
   const messages = [
     {
       role: "system",
-      content:
-        "You are a professional AI assistant.",
+      content: "You are a professional AI assistant.",
     },
     {
       role: "user",
@@ -175,18 +229,16 @@ sendBtn.onclick = async () => {
 
   let tokenCount = 0;
 
-  const stream =
-    await engine.chat.completions.create({
-      messages,
-      temperature: 0.7,
-      stream: true,
-    });
+  const stream = await engine.chat.completions.create({
+    messages,
+    temperature: 0.7,
+    stream: true,
+  });
 
   contentDiv.innerHTML = "";
 
   for await (const chunk of stream) {
-    const delta =
-      chunk.choices[0]?.delta?.content || "";
+    const delta = chunk.choices[0]?.delta?.content || "";
 
     if (!delta) continue;
 
@@ -198,12 +250,9 @@ sendBtn.onclick = async () => {
 
     tokenCount++;
 
-    const elapsed =
-      (performance.now() - startTime) / 1000;
+    const elapsed = (performance.now() - startTime) / 1000;
 
-    const tokensPerSecond = (
-      tokenCount / elapsed
-    ).toFixed(2);
+    const tokensPerSecond = (tokenCount / elapsed).toFixed(2);
 
     contentDiv.innerHTML = `
       ${marked.parse(fullResponse)}
@@ -262,17 +311,9 @@ sendBtn.onclick = async () => {
 
   hljs.highlightAll();
 
-  const totalTime =
-    (
-      (performance.now() - startTime) /
-      1000
-    ).toFixed(2);
+  const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
 
-  const firstTokenLatency =
-    (
-      (firstTokenTime - startTime) /
-      1000
-    ).toFixed(2);
+  const firstTokenLatency = ((firstTokenTime - startTime) / 1000).toFixed(2);
 
   contentDiv.innerHTML = `
     ${marked.parse(fullResponse)}
