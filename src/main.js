@@ -163,7 +163,7 @@ async function loadModel() {
     },
   });
 
-  await engine.reload("Llama-3.2-1B-Instruct-q4f16_1-MLC");
+  await engine.reload("Qwen2.5-0.5B-Instruct-q4f16_1-MLC");
 
   const loadTime = ((performance.now() - startTime) / 1000).toFixed(2);
 
@@ -191,224 +191,75 @@ async function loadModel() {
 loadModel();
 
 sendBtn.onclick = async () => {
-  const prompt = promptInput.value;
+  try {
+    const prompt = promptInput.value;
 
-  if (!prompt) return;
+    if (!prompt) return;
 
-  addMessage("user", prompt);
+    addMessage("user", prompt);
 
-  promptInput.value = "";
+    promptInput.value = "";
 
-  const assistantWrapper = addMessage(
-    "assistant",
-    `
-      <div class="typing">
-        Initializing generation...
-      </div>
-    `,
-  );
+    const assistantWrapper = addMessage(
+      "assistant",
+      `
+        <div class="typing">
+          Initializing generation...
+        </div>
+      `,
+    );
 
-  const contentDiv = assistantWrapper.querySelector(".message-content");
+    const contentDiv = assistantWrapper.querySelector(".message-content");
 
-  const messages = [
-    {
-      role: "system",
-      content: "You are a professional AI assistant.",
-    },
-    {
-      role: "user",
-      content: prompt,
-    },
-  ];
+    const messages = [
+      {
+        role: "system",
+        content: "You are a professional AI assistant.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ];
 
-  const startTime = performance.now();
+    const startTime = performance.now();
 
-  let firstTokenTime = null;
+    let fullResponse = "";
 
-  let fullResponse = "";
+    const stream = await engine.chat.completions.create({
+      messages,
+      temperature: 0.7,
+      stream: true,
+    });
 
-  let tokenCount = 0;
+    contentDiv.innerHTML = "";
 
-  const stream = await engine.chat.completions.create({
-    messages,
-    temperature: 0.7,
-    stream: true,
-  });
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content || "";
 
-  contentDiv.innerHTML = "";
+      fullResponse += delta;
 
-  for await (const chunk of stream) {
-    const delta = chunk.choices[0]?.delta?.content || "";
+      contentDiv.innerHTML = marked.parse(fullResponse);
 
-    if (!delta) continue;
-
-    if (!firstTokenTime) {
-      firstTokenTime = performance.now();
+      chat.scrollTop = chat.scrollHeight;
     }
 
-    fullResponse += delta;
+    hljs.highlightAll();
+  } catch (err) {
+    console.error(err);
 
-    tokenCount++;
+    addMessage(
+      "assistant",
+      `
+      ❌ Error generating response.
 
-    const elapsed = (performance.now() - startTime) / 1000;
-
-    const tokensPerSecond = (tokenCount / elapsed).toFixed(2);
-
-    contentDiv.innerHTML = `
-      ${marked.parse(fullResponse)}
-
-      <div class="response-metadata">
-
-        <div class="response-meta-grid">
-
-          <div class="meta-box">
-            <span class="meta-label">
-              Streaming
-            </span>
-
-            <span class="meta-value live">
-              LIVE
-            </span>
-          </div>
-
-          <div class="meta-box">
-            <span class="meta-label">
-              Elapsed
-            </span>
-
-            <span class="meta-value">
-              ${elapsed.toFixed(2)}s
-            </span>
-          </div>
-
-          <div class="meta-box">
-            <span class="meta-label">
-              Tokens Streamed
-            </span>
-
-            <span class="meta-value">
-              ${tokenCount}
-            </span>
-          </div>
-
-          <div class="meta-box">
-            <span class="meta-label">
-              Tokens/sec
-            </span>
-
-            <span class="meta-value">
-              ${tokensPerSecond}
-            </span>
-          </div>
-
-        </div>
-
-      </div>
-    `;
-
-    chat.scrollTop = chat.scrollHeight;
+      Possible reasons:
+      - WebGPU issue
+      - Model loading failure
+      - Browser compatibility problem
+      `,
+    );
   }
-
-  hljs.highlightAll();
-
-  const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
-
-  const firstTokenLatency = ((firstTokenTime - startTime) / 1000).toFixed(2);
-
-  contentDiv.innerHTML = `
-    ${marked.parse(fullResponse)}
-
-    <div class="response-metadata">
-
-      <div class="response-meta-grid">
-
-        <div class="meta-box">
-          <span class="meta-label">
-            Status
-          </span>
-
-          <span class="meta-value success">
-            Complete
-          </span>
-        </div>
-
-        <div class="meta-box">
-          <span class="meta-label">
-            Total Time
-          </span>
-
-          <span class="meta-value">
-            ${totalTime}s
-          </span>
-        </div>
-
-        <div class="meta-box">
-          <span class="meta-label">
-            First Token Latency
-          </span>
-
-          <span class="meta-value">
-            ${firstTokenLatency}s
-          </span>
-        </div>
-
-        <div class="meta-box">
-          <span class="meta-label">
-            Tokens Generated
-          </span>
-
-          <span class="meta-value">
-            ${tokenCount}
-          </span>
-        </div>
-
-        <div class="meta-box">
-          <span class="meta-label">
-            Avg Tokens/sec
-          </span>
-
-          <span class="meta-value">
-            ${(tokenCount / totalTime).toFixed(2)}
-          </span>
-        </div>
-
-        <div class="meta-box">
-          <span class="meta-label">
-            Timestamp
-          </span>
-
-          <span class="meta-value">
-            ${new Date().toLocaleTimeString()}
-          </span>
-        </div>
-
-      </div>
-
-    </div>
-  `;
-
-  updateMetadata(`
-    <div class="meta-item">
-      <strong>Last Generation:</strong>
-      ${totalTime}s
-    </div>
-
-    <div class="meta-item">
-      <strong>First Token:</strong>
-      ${firstTokenLatency}s
-    </div>
-
-    <div class="meta-item">
-      <strong>Tokens:</strong>
-      ${tokenCount}
-    </div>
-
-    <div class="meta-item">
-      <strong>Avg Speed:</strong>
-      ${(tokenCount / totalTime).toFixed(2)}
-      tok/sec
-    </div>
-  `);
 };
 
 promptInput.addEventListener("keypress", (e) => {
