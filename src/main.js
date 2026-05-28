@@ -388,8 +388,6 @@ sendBtn.onclick = async () => {
       </div>
     `;
 
-    await engine.runtimeStatsText();
-
   } catch (err) {
     console.error(
       "Generation Error:",
