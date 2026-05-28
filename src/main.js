@@ -234,12 +234,94 @@ sendBtn.onclick = async () => {
 
     contentDiv.innerHTML = "";
 
+    let tokenCount = 0;
+
     for await (const chunk of stream) {
       const delta = chunk.choices[0]?.delta?.content || "";
 
+      if (!delta) continue;
+
       fullResponse += delta;
 
-      contentDiv.innerHTML = marked.parse(fullResponse);
+      tokenCount++;
+
+      const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+
+      const tokensPerSecond = (tokenCount / elapsed).toFixed(2);
+
+      contentDiv.innerHTML = `
+    ${marked.parse(fullResponse)}
+
+    <div class="response-metadata">
+
+      <div class="response-meta-grid">
+
+        <div class="meta-box">
+          <span class="meta-label">
+            Streaming
+          </span>
+
+          <span class="meta-value live">
+            LIVE
+          </span>
+        </div>
+
+        <div class="meta-box">
+          <span class="meta-label">
+            Elapsed
+          </span>
+
+          <span class="meta-value">
+            ${elapsed}s
+          </span>
+        </div>
+
+        <div class="meta-box">
+          <span class="meta-label">
+            Tokens Streamed
+          </span>
+
+          <span class="meta-value">
+            ${tokenCount}
+          </span>
+        </div>
+
+        <div class="meta-box">
+          <span class="meta-label">
+            Tokens/sec
+          </span>
+
+          <span class="meta-value">
+            ${tokensPerSecond}
+          </span>
+        </div>
+
+      </div>
+
+    </div>
+  `;
+
+      responseInfo.innerHTML = `
+    <div class="meta-item">
+      <strong>Status:</strong>
+      Streaming
+    </div>
+
+    <div class="meta-item">
+      <strong>Elapsed:</strong>
+      ${elapsed}s
+    </div>
+
+    <div class="meta-item">
+      <strong>Tokens:</strong>
+      ${tokenCount}
+    </div>
+
+    <div class="meta-item">
+      <strong>Speed:</strong>
+      ${tokensPerSecond} tok/sec
+    </div>
+  `;
 
       chat.scrollTop = chat.scrollHeight;
     }
